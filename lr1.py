@@ -1,9 +1,7 @@
-from copy import deepcopy
-from random import choice, shuffle, randint
+rom random import choice, shuffle, randint
 from time import time
-from typing import List
 
-def generate_simple_rules(code_max, n_max, n_generate, log_oper_choice=["and","or","not"]):
+def generate_simple_rules(code_max, n_max, n_generate, log_oper_choice=["and", "or", "not"]):
 	rules = []
 	for j in range(0, n_generate):
 
@@ -16,70 +14,9 @@ def generate_simple_rules(code_max, n_max, n_generate, log_oper_choice=["and","o
 		    items.append( randint(1,code_max) )
 	    rule = {
 	          'if':{
-	              log_oper:	 items
+	              log_oper:	 items         
 	           },
 	           'then':code_max+j
-	        }
-	    rules.append(rule)
-	shuffle(rules)
-	return(rules)
-
-def generate_stairway_rules(code_max, n_max, n_generate, log_oper_choice=["and","or","not"]):
-	rules = []
-	for j in range(0, n_generate):
-
-	    log_oper = choice(log_oper_choice)  #not means and-not (neither)
-	    if n_max < 2:
-		    n_max = 2
-	    n_items = randint(2,n_max)
-	    items = []
-	    for i in range(0,n_items):
-		    items.append( i+j )
-	    rule = {
-	          'if':{
-	              log_oper:	 items
-	           },
-	           'then':i+j+1
-	        }
-	    rules.append(rule)
-	shuffle(rules)
-	return(rules)
-
-def generate_ring_rules(code_max, n_max, n_generate, log_oper_choice=["and","or","not"]):
-	rules = generate_stairway_rules(code_max, n_max, n_generate -1, log_oper_choice)
-	log_oper = choice(log_oper_choice)  #not means and-not (neither)
-	if n_max < 2:
-	    n_max = 2
-	n_items = randint(2,n_max)
-	items = []
-	for i in range(0,n_items):
-	    items.append( code_max-i )
-	rule = {
-	       'if':{
-	          log_oper:	 items
-	       },
-	       'then':0
-	       }
-	rules.append(rule)
-	shuffle(rules)
-	return(rules)
-
-def generate_random_rules(code_max, n_max, n_generate, log_oper_choice=["and","or","not"]):
-	rules = []
-	for j in range(0, n_generate):
-
-	    log_oper = choice(log_oper_choice)  #not means and-not (neither)
-	    if n_max < 2:
-		    n_max = 2
-	    n_items = randint(2,n_max)
-	    items = []
-	    for i in range(0,n_items):
-		    items.append( randint(1,code_max) )
-	    rule = {
-	          'if':{
-	              log_oper:	 items
-	           },
-	           'then':randint(1,code_max)
 	        }
 	    rules.append(rule)
 	shuffle(rules)
@@ -97,82 +34,123 @@ def generate_rand_facts(code_max, M):
 	return facts
 
 
-#samples:
-#print(generate_simple_rules(100, 4, 10))
-random_rules = generate_random_rules(100, 4, 10)
-#print(generate_stairway_rules(100, 4, 10, ["or"]))
-#print(generate_ring_rules(100, 4, 10, ["or"]))
+def results(facts, rules):
+    """
+        This function returns new rules!
+        Args:
+             List of facts and statements
+        Returns:
+             New rules
+        """
+    fact = set(facts)
+    interim_results = []
+    for i in rules:
+        for j in i['if']:
+            if j == 'or':
+                for atr in i['if'][j]:
+                    # if a in facts:
+                    if atr in fact:
+                        # interim_results.append([facts,i['then']])
+                        if len(interim_results) == 0:
+                            fac = facts.copy()
+                            interim_results.append({'if': fac, 'or': i['if'][j],
+                                                    'then': i['then']})
+                            facts.append(i['then'])
+                            fact.add(i['then'])
+                            break
+                        else:
+                            put = True
+                            for mer in interim_results:
+                                if 'or' in mer:
+                                    if (mer['or'] == i['if'][j] and mer['then'] != i['then']) or (
+                                            mer['or'] != i['if'][j] and mer['then'] == i['then']):
+                                        put = False
+                                        break
+                                if 'and' in mer:
+                                    if (mer['and'] == i['if'][j]) and (mer['then'] != i['then']):
+                                        put = False
+                                        break
+                            if put is True:
+                                fac = facts.copy()
+                                interim_results.append({'if': fac, 'or': i['if'][j],
+                                                        'then': i['then']})
+                                facts.append(i['then'])
+                                fact.add(i['then'])
+            if j == 'and':
+                count = len(i['if'][j])
+                counter = 0
+                for atr in i['if'][j]:
+                    # if a in facts:
+                    if atr in fact:
+                        counter = counter + 1
+                    else:
+                        break
+                if counter == count:
+                    # interim_results.append([facts,i['then']])
+                    if len(interim_results) == 0:
+                        fac = facts.copy()
+                        interim_results.append({'if': fac, 'and': i['if'][j], 'then': i['then']})
+                        facts.append(i['then'])
+                        fact.add(i['then'])
+                    else:
+                        put = True
+                        for mer in interim_results:
+                            if 'and' in mer:
+                                if (mer['and'] == i['if'][j] and mer['then'] != i['then']) or (
+                                        mer['and'] != i['if'][j] and mer['then'] == i['then']):
+                                    put = False
+                                    break
+                        if put is True:
+                            fac = facts.copy()
+                            interim_results.append({'if': fac, 'and': i['if'][j],
+                                                    'then': i['then']})
+                            facts.append(i['then'])
+                            fact.add(i['then'])
 
-#generate rules and facts and check time
+            if j == 'not':
+                count = len(i['if'][j])
+                counter = 0
+                for atr in i['if'][j]:
+                    # if a not in facts:
+                    if atr not in fact:
+                        counter = counter + 1
+                    else:
+                        break
+                if counter == count:
+                    # interim_results.append([facts,i['then']])
+                    if len(interim_results) == 0:
+                        fac = facts.copy()
+                        interim_results.append({'if': fac, 'not': i['if'][j], 'then': i['then']})
+                        facts.append(i['then'])
+                        fact.add(i['then'])
+                    else:
+                        put = True
+                        for mer in interim_results:
+                            if 'not' in mer:
+                                if (mer['not'] == i['if'][j] and mer['then'] != i['then']) or (
+                                        mer['not'] != i['if'][j] and mer['then'] == i['then']):
+                                    put = False
+                                    break
+                        if put is True:
+                            fac = facts.copy()
+                            interim_results.append({'if': fac, 'not': i['if'][j], 'then': i['then']})
+                            facts.append(i['then'])
+                            fact.add(i['then'])
+
+    return interim_results
+
+
 time_start = time()
-N = 100000
-M = 1000
-rules = generate_simple_rules(100, 4, N)
-facts = generate_rand_facts(100, M)
-print("%d rules generated in %f seconds" % (N,time()-time_start))
-
-#load and validate rules
-# YOUR CODE HERE
-print(facts)
-#check facts vs rules
+#N = 100000
+#M = 1000
+rules = generate_simple_rules(100, 4, 10000)
+#print(rules,'\n')
+facts = generate_rand_facts(100, 1000)
+print("%d rules generated in %f seconds" % (1000,time()-time_start))
+#print(facts,'\n')
 time_start = time()
-
-def check_items_with_not_operation(fact:int ,items:List[int]):
-    if fact in items:
-        return False
-    return True
-
-def check_items_with_and_operation(fact:int,items:List[int]):
-    if fact in items and items.count(fact) == 3:
-        return True
-    return False
-
-def check_items_with_or_operation(fact:int , items:List[int]):
-    if fact in items and items.count(fact) != 3:
-        return True
-    return False
-
-
-def validate_facts_and_rules(rules:List, facts:List[int]):
-    rules_facts = list()
-    for rule in rules:
-        for key , value in rule.items():
-            if isinstance(value,dict):
-                for operation , numbers in value.items():
-                    oper = operation
-                    items = numbers
-                break
-        for fact in facts:
-            if oper == 'not':
-                result = check_items_with_not_operation(fact=fact,items=items)
-            elif oper == 'and':
-                result = check_items_with_and_operation(fact=fact,items=items)
-            else:
-                result = check_items_with_or_operation(fact=fact , items=items)
-            rules_facts.append((rule,fact,result))
-    return rules_facts
-
-def check_mutual_exclusion(rules_facts:List , results:List):
-    copy_rules_facts = deepcopy(rules_facts)
-    for rule_fact in copy_rules_facts:
-        index = copy_rules_facts.index(rule_fact)
-        value_result = results[index]
-        rules_facts.remove(rule_fact)
-        del results[index]
-        while rule_fact in rules_facts:
-            equal_index_rule_fact = rules_facts.index(rule_fact)
-            equal_rule_fact = rules_facts[equal_index_rule_fact]
-            if value_result != results[equal_index_rule_fact]:
-                rules_facts.remove(equal_rule_fact)
-                del results[equal_index_rule_fact]
-    return rules_facts
-
-
-
-
-
-# YOUR CODE HERE
-
-print("%d facts validated vs %d rules in %f seconds" % (M,N,time()-time_start))
-result_facts = validate_facts_and_rules(rules=random_rules,facts=facts)
-print(*result_facts,sep='\n')
+in_res = results(facts, rules)
+rez = time()-time_start
+#print(rez)
+#print(in_res,'\n')
+print("%d facts validated vs %d rules in %f seconds" % (1000,10000,rez))
